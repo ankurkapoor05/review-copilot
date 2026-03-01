@@ -5,17 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    // In dev, proxy /api/* to the Vercel dev server (port 3001)
-    // Run: `npx vercel dev` instead of `npm run dev` to test API calls locally
     proxy: {
-      "/api": {
-        target: "http://localhost:3001",
-        changeOrigin: true,
-      },
-    },
+      "/api": { target: "http://localhost:3001", changeOrigin: true }
+    }
   },
-  build: {
-    outDir: "dist",
-    sourcemap: false,
-  },
+  build: { outDir: "dist", sourcemap: false }
 });
