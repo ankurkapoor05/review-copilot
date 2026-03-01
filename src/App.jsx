@@ -1001,12 +1001,12 @@ function MainApp({ session, profile: initialProfile, onLogout }) {
                       <Card style={{marginBottom:0}}>
                         <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:300,marginBottom:16}}>Rating Distribution</div>
                         {periodReviews.length===0?<div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13,color:"var(--muted2)",fontStyle:"italic",textAlign:"center",padding:"20px 0"}}>No reviews in this period</div>
-                        :[5,4,3,2,1].map(star=>{const c=periodReviews.filter(r=>r.rating===star).length,p=Math.round(c/periodReviews.length*100);return(
+                        :[5,4,3,2,1].map(star=>{ const cnt=periodReviews.filter(r=>r.rating===star).length, pct=Math.round(cnt/periodReviews.length*100); return(
                           <div key={star} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
-                            <Stars rating={star} size={11}/><div style={{flex:1,height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${p}%`,background:star>=4?"var(--teal)":star===3?"#fbbf24":"var(--red)",borderRadius:3}}/></div>
-                            <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:8,color:"var(--muted)",width:24,textAlign:"right"}}>{c}</span>
+                            <Stars rating={star} size={11}/><div style={{flex:1,height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:star>=4?"var(--teal)":star===3?"#fbbf24":"var(--red)",borderRadius:3}}/></div>
+                            <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:8,color:"var(--muted)",width:24,textAlign:"right"}}>{cnt}</span>
                           </div>
-                        ))}
+                        );})
                       </Card>
                       <Card style={{marginBottom:0}}>
                         <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:300,marginBottom:16}}>Sentiment Breakdown</div>
