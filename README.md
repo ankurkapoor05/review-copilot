@@ -1,179 +1,87 @@
-# Review Copilot ✦
+# Review Copilot — Deployment Guide
 
-> AI-powered Google Review management dashboard — built with React + Vite, deployed on Vercel.
-
-## Live Features
-- 🔐 **Auth** — Sign up, login, forgot password (localStorage-backed; swap for Supabase in production)
-- 🔗 **Google Business OAuth** — Connect/disconnect/reconnect your Google Business Profile
-- 📊 **Dashboard** — Real-time stats with time-period filtering (1 week → 3 years)
-- 💬 **AI Replies** — Generate & post responses with tone control (Claude Sonnet)
-- 🧠 **Business Insights** — AI-powered analysis: what's working, what's not, how to improve
-- 🔔 **Email Notifications** — Trigger alerts for negative/neutral/all reviews
-- 🤖 **Auto-Reply Copilot** — Automatically reply to positive/neutral/negative reviews
-- 🗑 **Account Management** — Disconnect Google, delete account
+## What was fixed in this build
+- ✅ **Per-user reviews**: Each user's reviews are stored in their own `localStorage` key (`rc_reviews_<userId>`). New users get demo data seeded on first login; it's saved and isolated per account.
+- ✅ **AI calls fixed**: The app now calls `/api/claude` (a Vercel serverless function) instead of Anthropic directly. Browsers block direct Anthropic calls with CORS errors — the proxy fixes this and keeps your API key server-side only.
 
 ---
 
-## 🚀 Deploy to Vercel in 5 Minutes
+## Deploy to Vercel (5 minutes)
 
-### Prerequisites
-- [Node.js 18+](https://nodejs.org)
-- [Git](https://git-scm.com)
-- A free [Vercel account](https://vercel.com)
-- An [Anthropic API key](https://console.anthropic.com)
-
----
-
-### Step 1 — Install Vercel CLI
+### 1. Push to GitHub
 ```bash
-npm install -g vercel
-```
-
-### Step 2 — Push to GitHub
-```bash
+cd review-copilot-prod
 git init
 git add .
-git commit -m "Initial commit"
-# Create a repo at github.com, then:
+git commit -m "Review Copilot v2 - fix API proxy and per-user data"
+```
+Create a repo at github.com/new, then:
+```bash
 git remote add origin https://github.com/YOUR_USERNAME/review-copilot.git
 git push -u origin main
 ```
 
-### Step 3 — Deploy to Vercel
-```bash
-vercel
-```
-Follow the prompts:
-- Link to existing project? **No** → create new
-- Project name: `review-copilot`
-- Framework: **Vite** (auto-detected)
-- Build command: `npm run build` (default)
-- Output dir: `dist` (default)
+### 2. Import on Vercel
+Go to **vercel.com → Add New Project → Import Git Repository**
 
-Or deploy directly from GitHub at **vercel.com → New Project → Import from GitHub**.
+Settings Vercel will auto-detect:
+- Framework: **Vite**
+- Build command: `npm run build`
+- Output directory: `dist`
 
-### Step 4 — Set Environment Variables
-In the Vercel dashboard → **Project → Settings → Environment Variables**, add:
+Click **Deploy**.
 
-| Variable | Value | Environments |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | `sk-ant-...` | Production, Preview, Development |
-| `ALLOWED_ORIGIN` | `https://your-project.vercel.app` | Production |
+### 3. Add your API key ← REQUIRED
+After deploy, go to:
+**Vercel Dashboard → Your Project → Settings → Environment Variables**
 
-> 💡 Get your API key at [console.anthropic.com](https://console.anthropic.com)
+Add this variable:
 
-### Step 5 — Redeploy
-After adding env vars, trigger a redeploy:
-```bash
-vercel --prod
-```
+| Name | Value |
+|------|-------|
+| `ANTHROPIC_API_KEY` | `sk-ant-api03-...` (from console.anthropic.com) |
 
-**Your app is live! 🎉**
+Set it for **Production**, **Preview**, and **Development** environments.
+
+### 4. Redeploy
+After adding the env var, you must redeploy:
+- Go to **Deployments** tab → click the three dots on the latest deployment → **Redeploy**
+- Or run: `npx vercel --prod`
+
+**That's it — your app is live.**
 
 ---
 
-## 🔧 Local Development
+## Test the API is working
+After deploy, open your browser console on the live site and run:
+```js
+fetch('/api/claude', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({
+    messages: [{role: 'user', content: 'Say "API working" in 3 words'}]
+  })
+}).then(r => r.json()).then(console.log)
+```
+You should see a response with `content[0].text`. If you see `"API key not set"`, the env var wasn't saved or the deployment wasn't re-triggered.
 
+---
+
+## Local development
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Create local env file
-cp .env.example .env.local
-# Edit .env.local and add your ANTHROPIC_API_KEY
-
-# 3. Start dev server (React on :3000, proxies /api to :3001)
-npm run dev
+npx vercel dev   # runs both frontend + API functions on localhost:3000
 ```
-
-The Vite dev server proxies `/api/*` requests to `http://localhost:3001`. In local dev, Vercel serverless functions aren't available directly — use `vercel dev` instead:
-
-```bash
-# Runs both frontend and API functions locally
-npx vercel dev
+The `vercel dev` command reads your local `.env` file — create one:
+```
+ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
 
 ---
 
-## 🏗 Architecture
-
-```
-review-copilot/
-├── index.html              # HTML entry point
-├── vite.config.js          # Vite build + dev proxy config
-├── vercel.json             # Vercel deployment + security headers
-├── package.json
-├── .env.example            # Template for environment variables
-├── api/
-│   └── claude.js           # ⭐ Serverless function — API key lives HERE only
-│                           #    Handles CORS, rate limiting, input validation
-└── src/
-    ├── main.jsx            # React root
-    └── App.jsx             # Full application (auth + dashboard + all views)
-```
-
-### Security Model
-```
-Browser (React)  →  POST /api/claude  →  Vercel Serverless  →  Anthropic API
-                         ↑                      ↑
-                   No API key here         Key lives here only
-                                           (env var, never in code)
-```
-
-The `api/claude.js` function:
-- ✅ Validates request origin (CORS)
-- ✅ Rate-limits per IP (20 req/min)
-- ✅ Sanitises and caps request parameters
-- ✅ Never exposes the API key to clients
-
----
-
-## 🔄 Swap Demo Auth for Real Auth (Optional)
-
-The current auth stores users in `localStorage` — great for demos, not for production with multiple devices/users. To use a real database:
-
-### Option A: Supabase (recommended, free tier)
-```bash
-npm install @supabase/supabase-js
-```
-1. Create a project at [supabase.com](https://supabase.com)
-2. Enable **Email Auth** under Authentication
-3. Replace `getUsers`/`saveUsers`/`getSession` helpers with Supabase calls
-4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to env vars
-
-### Option B: Firebase Auth
-```bash
-npm install firebase
-```
-Use `createUserWithEmailAndPassword` / `signInWithEmailAndPassword`.
-
----
-
-## 🔗 Real Google Business Profile API
-
-The Google connect flow is currently simulated. To wire up real OAuth:
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a project → Enable **Business Profile API**
-3. Create OAuth 2.0 credentials (Web application)
-4. Add your Vercel URL to Authorised Redirect URIs
-5. Create `api/google-auth.js` to handle the OAuth callback and store tokens
-6. Call `https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews`
-
----
-
-## 💰 Estimated Running Costs
-
-| Service | Free Tier | Paid |
-|---|---|---|
-| Vercel (hosting) | 100GB bandwidth/mo | ~$20/mo Pro |
-| Anthropic API | Pay-per-use | ~$0.003 per AI reply |
-| Supabase (auth/db) | 500MB, 50k MAU | $25/mo Pro |
-| Custom domain | — | ~$12/year |
-
-A typical small business using 50 AI replies/day costs roughly **$4–6/month** in API fees.
-
----
-
-## 📄 License
-MIT
+## How per-user data works
+Each user's reviews are stored under `localStorage` key `rc_reviews_<userId>`.
+- New users get the 15 demo reviews seeded on first login
+- Reviews they reply to, flag, or modify are saved immediately
+- Logging out and back in preserves their exact state
+- Different users on the same browser have fully separate review lists

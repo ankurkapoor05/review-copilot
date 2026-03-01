@@ -620,7 +620,18 @@ function Modal({ onClose, children, danger }) {
 function MainApp({ user: initialUser, onLogout, onDeleteAccount }) {
   const [currentUser, setCurrentUser] = useState(initialUser);
   const user = currentUser;
-  const [reviews, setReviews]       = useState(DEMO_REVIEWS);
+  // Load this user's reviews from localStorage (or seed demo data for new users)
+  const REVIEWS_KEY = `rc_reviews_${initialUser.id}`;
+  const [reviews, setReviews] = useState(() => {
+    try {
+      const stored = localStorage.getItem(REVIEWS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    // First login: seed with demo data so the app feels populated
+    const seeded = DEMO_REVIEWS.map(r => ({...r, date: r.date.toISOString ? r.date.toISOString() : r.date}));
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(seeded));
+    return seeded;
+  });
   const [view, setView]             = useState("dashboard");
   const [activeTab, setActiveTab]   = useState("all");
   const [selected, setSelected]     = useState(null);
@@ -711,6 +722,11 @@ function MainApp({ user: initialUser, onLogout, onDeleteAccount }) {
     onDeleteAccount();
   };
 
+  // Persist reviews to localStorage whenever they change
+  useEffect(()=>{
+    try { localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews)); } catch {}
+  }, [reviews]);
+
   useEffect(()=>{
     if(!isGen) return;
     const i=setInterval(()=>setDots(d=>d.length>=3?"":d+"."),400);
@@ -749,8 +765,24 @@ function MainApp({ user: initialUser, onLogout, onDeleteAccount }) {
   };
 
   const callClaude = async(system,user_,maxTokens=1000)=>{
-    const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:maxTokens,system,messages:[{role:"user",content:user_}]})});
-    const data=await res.json(); return data.content?.[0]?.text||"";
+    // Calls /api/claude — our secure serverless proxy that holds the API key.
+    // NEVER call api.anthropic.com directly from the browser (CORS + key exposure).
+    const res = await fetch("/api/claude", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: maxTokens,
+        system,
+        messages: [{role:"user", content:user_}]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error || `API error ${res.status}`);
+    }
+    const data = await res.json();
+    return data.content?.[0]?.text || "";
   };
   const generateReply=async(review)=>{
     setIsGen(true);setGenReply("");setEditReply("");
