@@ -1006,7 +1006,8 @@ function MainApp({ session, profile: initialProfile, onLogout }) {
                             <Stars rating={star} size={11}/><div style={{flex:1,height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:star>=4?"var(--teal)":star===3?"#fbbf24":"var(--red)",borderRadius:3}}/></div>
                             <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:8,color:"var(--muted)",width:24,textAlign:"right"}}>{cnt}</span>
                           </div>
-                        );})}
+                     );
+})}
                       </Card>
                       <Card style={{marginBottom:0}}>
                         <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:300,marginBottom:16}}>Sentiment Breakdown</div>
@@ -1128,7 +1129,7 @@ function MainApp({ session, profile: initialProfile, onLogout }) {
                               </select>
                             </div>
                             <div style={{display:"flex",alignItems:"flex-end"}}>
-                              <button className="btn gold" onClick={()=>generateReply(selected)} disabled={isGen} style={{opacity:isGen?.7:1,whiteSpace:"nowrap"}}>
+                              <button className="btn gold" onClick={()=>generateReply(selected)} disabled={isGen} style={{ opacity: isGen ? 0.7 : 1, whiteSpace: "nowrap" }}>
                                 {isGen?`Generating${dots}`:"✦ Generate"}
                               </button>
                             </div>
